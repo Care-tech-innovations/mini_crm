@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini CRM — Diagrams</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        body { font-family: system-ui, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+        h1 { color: #3D4F3A; }
+        h2 { color: #5A6D4C; margin-top: 2rem; border-bottom: 1px solid #C4BDB2; padding-bottom: 0.5rem; }
+        .diagram { background: #F5F3EE; border-radius: 8px; padding: 1.5rem; margin: 1rem 0; }
+    </style>
+</head>
+<body>
+    <h1>Mini CRM — Diagrams</h1>
+
+    <h2>1. Architecture Overview</h2>
+    <div class="diagram mermaid">
+flowchart TB
+    subgraph UI [Streamlit Web UI]
+        Sidebar[Sidebar Navigation]
+        MainArea[Main Content Area]
+        Logo[Logo - Top Center]
+        Sidebar --> MainArea
+        Logo --> MainArea
+    end
+
+    subgraph Pages [Pages]
+        ViewAll[View All Clients]
+        AddClient[Add Client]
+        DeleteClient[Delete Client]
+    end
+
+    subgraph App [app.py]
+        SessionState[Session State]
+        MainArea --> ViewAll
+        MainArea --> AddClient
+        MainArea --> DeleteClient
+    end
+
+    subgraph Terminal [crm.py]
+        TerminalApp[Terminal CRM]
+    end
+
+    subgraph Data [data.py]
+        LoadData[load_data]
+        SaveData[save_data]
+        ReorganizeIDs[reorganize_ids]
+        FindClient[find_client_by_id]
+    end
+
+    subgraph Theme [theme.py]
+        Palette[Color Palette]
+        StatusColors[STATUS_COLORS]
+    end
+
+    subgraph Storage [File Storage]
+        ClientsJSON[clients.json]
+        Backups[backups/]
+    end
+
+    App --> Data
+    App --> Theme
+    TerminalApp --> Data
+    Data --> ClientsJSON
+    Data --> Backups
+    </div>
+
+    <h2>2. Data Flow and Security</h2>
+    <div class="diagram mermaid">
+flowchart LR
+    subgraph Load [Load Flow]
+        A[clients.json exists?] -->|Yes| B[Read + Validate]
+        A -->|No| C[Try backups]
+        B -->|Fail| C
+        C -->|Found valid| D[Return data]
+        C -->|None valid| E[default_data]
+    end
+
+    subgraph Save [Save Flow]
+        F[Validate data] --> G[Create backup]
+        G --> H[Acquire lock if filelock]
+        H --> I[Write to temp file]
+        I --> J[Atomic move to clients.json]
+    end
+    </div>
+
+    <h2>3. UI Flow and Pages</h2>
+    <div class="diagram mermaid">
+flowchart TB
+    Start[App Start] --> Load[Load data]
+    Load --> Sidebar[Render Sidebar]
+    Sidebar --> Nav[Navigate: View / Add / Delete]
+    Load --> Logo[Show Logo - Centered]
+    Logo --> Page{Page?}
+
+    Page -->|View all| View[View All Clients]
+    Page -->|Add| Add[Add New Client]
+    Page -->|Delete| Del[Delete Client]
+
+    View --> Table[Editable Data Table]
+    Table --> Inline[Inline Edit: Name, Phone, Status, Notes]
+    Table --> Select[Select checkbox for delete]
+    Select --> DeleteBtn[Delete Client button]
+    Inline --> Save1[save_data]
+
+    Add --> Form[Form: Name, Phone]
+    Form --> AddBtn[Add client button]
+    AddBtn --> Save2[save_data]
+    Save2 --> Redirect[Redirect to View all]
+
+    Del --> Selector[Select client dropdown]
+    Selector --> Confirm[Confirmation checkbox]
+    Confirm --> DelBtn[Delete client button]
+    DelBtn --> Save3[save_data]
+    </div>
+
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+    </script>
+</body>
+</html>
