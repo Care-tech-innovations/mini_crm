@@ -37,9 +37,24 @@ This guide explains how to make your Mini CRM accessible to others through a lin
    - After a few minutes, you'll get a URL like:
    - `https://your-app-name-xxxxx.streamlit.app`
 
-### Important notes for Streamlit Cloud
+### Supabase (persistent data)
 
-- **Data persistence:** `clients.json` is stored in ephemeral storage. Data may reset when the app restarts or redeploys. For permanent data, consider adding a database later.
+To keep client data across restarts and share it between all users:
+
+1. **Create a Supabase project** at [supabase.com](https://supabase.com)
+2. **Create table `clients`** with columns: `id` (int8), `name` (text), `phone` (text), `status` (text), `notes` (jsonb)
+3. **Enable RLS policies** to allow anon read/write (or use service role for simplicity)
+4. **Add secrets** in Streamlit Cloud: Settings → Secrets:
+   ```
+   SUPABASE_URL = "https://your-project.supabase.co"
+   SUPABASE_KEY = "your_anon_public_key"
+   ```
+5. **Redeploy** the app
+
+When Supabase credentials are set, the app uses the database. Otherwise it falls back to local JSON (ephemeral on Streamlit Cloud).
+
+### Other notes
+
 - **Logo:** Add `assets/logo_ramayana.png` to your repo for the logo to appear. The app works without it.
 
 ---
@@ -89,6 +104,7 @@ If you have a server (DigitalOcean, AWS, etc.):
 
 | Method | Cost | Persistence | Best for |
 |--------|------|-------------|----------|
-| Streamlit Cloud | Free | Ephemeral | Quick share, demos |
+| Streamlit Cloud + Supabase | Free | Persistent | Shared data, production |
+| Streamlit Cloud (no DB) | Free | Ephemeral | Quick share, demos |
 | ngrok | Free tier | While running | Testing with others |
 | VPS | Paid | Full control | Production |
