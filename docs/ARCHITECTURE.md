@@ -75,6 +75,8 @@ flowchart TB
 | [backups/](backups/) | Timestamped backups (gitignored) |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | This documentation |
 | [docs/diagrams.html](docs/diagrams.html) | Visual diagrams (open in browser to view) |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | How to deploy and share the app via browser |
+| [docs/SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md) | Supabase database setup for persistent shared data |
 | [run.py](run.py) | Convenience entry point: `python run.py` runs the web app |
 
 ---
@@ -105,6 +107,8 @@ flowchart TB
 **Notes format in UI:** `YYYY-MM-DD HH:MM: text` (one line per note)
 
 **Notes parsing (`parse_notes_text`):** Lines with format `YYYY-MM-DD HH:MM: text` (date at positions 0–16, colon-space at 16–18) keep their date. Lines without this format get current timestamp. Empty lines are skipped.
+
+**Storage:** When `SUPABASE_URL` and `SUPABASE_KEY` are configured (via `.env` or Streamlit Secrets), data is stored in Supabase. Otherwise, the app uses `clients.json` locally. See [docs/SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md).
 
 ---
 

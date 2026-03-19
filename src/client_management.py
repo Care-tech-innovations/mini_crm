@@ -105,7 +105,7 @@ def view_all_clients(clients, data):
             ),
         },
         hide_index=True,
-        use_container_width=True,
+        width="stretch",
         key="clients_editor",
     )
 
