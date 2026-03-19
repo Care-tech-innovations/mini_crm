@@ -33,7 +33,7 @@ MAX_BACKUPS = 10
 
 VALID_STATUSES = ["interested", "student", "client"]
 
-TABLE_NAME = "clients"
+TABLE_NAME = "Ramayana's Clients"  # Must match your Supabase table name
 
 
 def _get_supabase_client():
