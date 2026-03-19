@@ -1,22 +1,9 @@
-"""
-Data layer: load and save clients via Supabase.
-Falls back to JSON file if Supabase credentials are not configured.
-"""
-
 import json
 import os
 import shutil
 import tempfile
 import glob
 from datetime import datetime
-
-# Load .env for local development (Streamlit Cloud uses st.secrets)
-try:
-    from dotenv import load_dotenv
-    _base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    load_dotenv(os.path.join(_base_dir, ".env"))
-except ImportError:
-    pass
 
 try:
     from filelock import FileLock
@@ -33,42 +20,6 @@ MAX_BACKUPS = 10
 
 VALID_STATUSES = ["interested", "student", "client"]
 
-TABLE_NAME = "Ramayana's Clients"  # Must match your Supabase table name
-
-
-def _get_supabase_client():
-    """Get Supabase client. Returns None if credentials not configured."""
-    url = None
-    key = None
-
-    try:
-        import streamlit as st
-        if hasattr(st, "secrets") and st.secrets:
-            url = st.secrets.get("SUPABASE_URL")
-            key = st.secrets.get("SUPABASE_KEY")
-    except Exception:
-        pass
-
-    if not url or not key:
-        url = os.environ.get("SUPABASE_URL")
-        key = os.environ.get("SUPABASE_KEY")
-
-    if not url or not key:
-        return None
-
-    try:
-        from supabase import create_client
-        return create_client(url, key)
-    except Exception:
-        return None
-
-
-def _use_supabase():
-    """Check if we should use Supabase (credentials available)."""
-    return _get_supabase_client() is not None
-
-
-# ── JSON fallback (original logic) ───────────────────────────────────────────
 
 def default_data():
     return {"next_id": 1, "clients": []}
@@ -93,6 +44,7 @@ def _create_backup():
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     backup_path = os.path.join(BACKUP_DIR, f"clients_{timestamp}.json")
     shutil.copy2(DATA_FILE, backup_path)
+    # Rotate: delete oldest backups if too many
     backups = sorted(glob.glob(os.path.join(BACKUP_DIR, "clients_*.json")))
     for old in backups[:-MAX_BACKUPS]:
         try:
@@ -101,16 +53,18 @@ def _create_backup():
             pass
 
 
-def _load_json():
-    """Load from JSON file."""
+def load_data():
+    """Load client data. Falls back to latest backup if main file is corrupted."""
+    # Try main file first
     if os.path.exists(DATA_FILE):
         try:
             with open(DATA_FILE, "r", encoding="utf-8") as f:
                 data = json.load(f)
             return _validate_data(data)
         except (json.JSONDecodeError, IOError, ValueError):
-            pass
+            pass  # Fall through to backup
 
+    # Try latest backup
     os.makedirs(BACKUP_DIR, exist_ok=True)
     backups = sorted(
         glob.glob(os.path.join(BACKUP_DIR, "clients_*.json")),
@@ -127,8 +81,8 @@ def _load_json():
     return default_data()
 
 
-def _save_json(data):
-    """Save to JSON file."""
+def save_data(data):
+    """Save data with atomic write and automatic backup."""
     _validate_data(data)
     _create_backup()
 
@@ -152,81 +106,7 @@ def _save_json(data):
         _do_save()
 
 
-# ── Supabase logic ──────────────────────────────────────────────────────────
-
-def _load_supabase():
-    """Load clients from Supabase."""
-    sb = _get_supabase_client()
-    if not sb:
-        return default_data()
-
-    try:
-        response = sb.table(TABLE_NAME).select("*").order("id").execute()
-        rows = response.data if response.data else []
-    except Exception:
-        return default_data()
-
-    clients = []
-    for row in rows:
-        clients.append({
-            "id": int(row["id"]),
-            "name": str(row.get("name", "")),
-            "phone": str(row.get("phone", "")),
-            "status": str(row.get("status", "interested")),
-            "notes": row.get("notes") or [],
-        })
-
-    next_id = max((c["id"] for c in clients), default=0) + 1
-    return {"next_id": next_id, "clients": clients}
-
-
-def _save_supabase(data):
-    """Save clients to Supabase."""
-    _validate_data(data)
-    sb = _get_supabase_client()
-    if not sb:
-        raise RuntimeError("Supabase not configured")
-
-    try:
-        # Delete all existing rows (filter: id >= 0 matches all our clients)
-        sb.table(TABLE_NAME).delete().gte("id", 0).execute()
-
-        # Bulk insert all clients
-        if data["clients"]:
-            rows = [
-                {
-                    "id": c["id"],
-                    "name": c["name"],
-                    "phone": c["phone"],
-                    "status": c["status"],
-                    "notes": c.get("notes", []),
-                }
-                for c in data["clients"]
-            ]
-            sb.table(TABLE_NAME).insert(rows).execute()
-    except Exception as e:
-        raise RuntimeError(f"Error saving to Supabase: {e}") from e
-
-
-# ── Public API ───────────────────────────────────────────────────────────────
-
-def load_data():
-    """Load client data. Uses Supabase if configured, else JSON file."""
-    if _use_supabase():
-        return _load_supabase()
-    return _load_json()
-
-
-def save_data(data):
-    """Save data. Uses Supabase if configured, else JSON file."""
-    if _use_supabase():
-        _save_supabase(data)
-    else:
-        _save_json(data)
-
-
 def reorganize_ids(data):
-    """Sort clients by name and renumber IDs."""
     data["clients"].sort(key=lambda c: c["name"].lower())
     for i, client in enumerate(data["clients"], 1):
         client["id"] = i
@@ -234,7 +114,6 @@ def reorganize_ids(data):
 
 
 def find_client_by_id(clients, client_id):
-    """Find a client by ID."""
     for client in clients:
         if client["id"] == client_id:
             return client
