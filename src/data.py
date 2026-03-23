@@ -44,8 +44,18 @@ def _get_supabase_client():
     try:
         import streamlit as st
         if hasattr(st, "secrets") and st.secrets:
+            # Top-level format: SUPABASE_URL = "..."
             url = st.secrets.get("SUPABASE_URL")
             key = st.secrets.get("SUPABASE_KEY")
+            # Nested format: [connections.supabase] SUPABASE_URL = "..."
+            if not url or not key:
+                try:
+                    sb = (st.secrets.get("connections") or {}).get("supabase") or {}
+                    if isinstance(sb, dict):
+                        url = url or sb.get("SUPABASE_URL")
+                        key = key or sb.get("SUPABASE_KEY")
+                except Exception:
+                    pass
     except Exception:
         pass
 
@@ -58,9 +68,16 @@ def _get_supabase_client():
 
     try:
         from supabase import create_client
-        return create_client(url, key)
+        return create_client(str(url).strip(), str(key).strip())
     except Exception:
         return None
+
+
+def get_data_source():
+    """Return 'supabase' or 'json' for diagnostics. Does not raise."""
+    if _use_supabase():
+        return "supabase"
+    return "json"
 
 
 def _use_supabase():

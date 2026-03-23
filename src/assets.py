@@ -161,6 +161,16 @@ def render_sidebar():
         key="nav_page",
     )
     st.sidebar.markdown("---")
+    # Data source indicator (helps debug Supabase connection)
+    try:
+        from data import get_data_source
+        src = get_data_source()
+        if src == "supabase":
+            st.sidebar.caption("✓ Datos: Supabase")
+        else:
+            st.sidebar.caption("⚠ Datos: archivo local — añade SUPABASE_URL y SUPABASE_KEY en Secrets")
+    except Exception:
+        pass
     st.sidebar.caption("Wellness Client Manager")
     return page
 
