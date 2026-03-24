@@ -1,0 +1,38 @@
+# Respaldo diario de clientes desde Supabase
+# Se ejecuta cada día y permite ejecución manual
+
+name: Backup clientes diario
+
+on:
+  schedule:
+    # 6:00 AM UTC = ~1:00 AM Ecuador
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    # Permite ejecutar manualmente desde la pestaña Actions
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependencias
+        run: pip install supabase python-dotenv
+
+      - name: Ejecutar respaldo
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: python scripts/export_backup.py
+
+      - name: Subir backup como artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-clientes-${{ github.run_number }}
+          path: backups/
