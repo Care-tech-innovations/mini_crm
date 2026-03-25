@@ -26,6 +26,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Public project URL (same as Streamlit). Org secrets sometimes only store the key.
+      - name: URL de Supabase si el secret SUPABASE_URL está vacío
+        run: |
+          if [ -z "$SUPABASE_URL" ]; then
+            echo "SUPABASE_URL=https://mjylvwhyxnoqlieuhapv.supabase.co" >> $GITHUB_ENV
+            echo "Using default Supabase project URL (SUPABASE_URL secret was empty)."
+          fi
+
       - name: Configurar Python
         uses: actions/setup-python@v5
         with:
@@ -34,18 +42,17 @@ jobs:
       - name: Instalar dependencias
         run: pip install supabase python-dotenv
 
-      - name: Comprobar repositorio y secrets
+      - name: Comprobar repositorio y SUPABASE_KEY
         run: |
           echo "Repo: $GITHUB_REPOSITORY"
-          echo "Este workflow debe tener secrets en: https://github.com/$GITHUB_REPOSITORY/settings/secrets/actions"
-          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_KEY" ]; then
-            echo "::error::SUPABASE_URL o SUPABASE_KEY vacíos."
-            echo "::error::1) Abre Settings → Secrets and variables → Actions en ESTE repo (no en tu fork)."
-            echo "::error::2) Crea Repository secrets: SUPABASE_URL y SUPABASE_KEY (mismos valores que Streamlit Cloud)."
-            echo "::error::3) Si usas Organization secrets: en la org → Secrets → edita el secret → Repository access → añade mini_crm."
+          echo "Secrets page: https://github.com/$GITHUB_REPOSITORY/settings/secrets/actions"
+          if [ -z "$SUPABASE_KEY" ]; then
+            echo "::error::SUPABASE_KEY is empty. This workflow needs the anon key."
+            echo "::error::Add Repository secret SUPABASE_KEY on THIS repo (Care-tech-innovations/mini_crm), not your fork."
+            echo "::error::If using Organization secrets: Org Settings → Secrets → each secret → Repository access → enable mini_crm."
             exit 1
           fi
-          echo "Secrets OK (no se muestran valores)."
+          echo "SUPABASE_KEY is set. Ready to run backup."
 
       - name: Ejecutar respaldo
         run: python scripts/export_backup.py

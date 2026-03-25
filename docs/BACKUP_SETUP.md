@@ -7,9 +7,18 @@ Para que el workflow funcione, debes añadir las credenciales:
 1. Ve a [github.com/Care-tech-innovations/mini_crm](https://github.com/Care-tech-innovations/mini_crm)
 2. **Settings** → **Secrets and variables** → **Actions**
 3. **New repository secret**
-4. Crea dos secrets:
-   - **SUPABASE_URL** = `https://mjylvwhyxnoqlieuhapv.supabase.co`
-   - **SUPABASE_KEY** = tu clave anon de Supabase (la misma de tu `.env`)
+4. **Mínimo obligatorio:** crea el secret **SUPABASE_KEY** (clave anon de Supabase, la misma que en Streamlit / `.env`).
+5. **Opcional:** **SUPABASE_URL** = `https://mjylvwhyxnoqlieuhapv.supabase.co` — si no lo añades, el workflow usa la URL por defecto del proyecto.
+
+### Organization secrets (Care-tech-innovations)
+
+Si los secrets están en la **organización** y no en el repo:
+
+1. **Organization** → **Settings** → **Secrets and variables** → **Actions**
+2. Abre **SUPABASE_KEY** (y **SUPABASE_URL** si existe)
+3. **Repository access** → asegúrate de que el repositorio **mini_crm** esté incluido.
+
+Sin acceso al repo, el workflow recibe valores vacíos y falla.
 
 ## 2. Probar el workflow
 
