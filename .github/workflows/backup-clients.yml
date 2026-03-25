@@ -3,6 +3,11 @@
 
 name: Backup clientes diario
 
+# Repos with restrictive default token need this for artifact upload
+permissions:
+  contents: read
+  actions: write
+
 on:
   schedule:
     # 6:00 AM UTC = ~1:00 AM Ecuador
@@ -24,6 +29,17 @@ jobs:
 
       - name: Instalar dependencias
         run: pip install supabase python-dotenv
+
+      - name: Comprobar que existen los secrets
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_KEY" ]; then
+            echo "::error::SUPABASE_URL o SUPABASE_KEY vacíos. Añádelos en Settings → Secrets → Actions del repo."
+            exit 1
+          fi
+          echo "Secrets presentes (valores no mostrados)."
 
       - name: Ejecutar respaldo
         env:
