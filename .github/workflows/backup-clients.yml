@@ -18,6 +18,10 @@ on:
 jobs:
   backup:
     runs-on: ubuntu-latest
+    # Job-level env so every step (including Python) receives the same secrets
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -30,21 +34,20 @@ jobs:
       - name: Instalar dependencias
         run: pip install supabase python-dotenv
 
-      - name: Comprobar que existen los secrets
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+      - name: Comprobar repositorio y secrets
         run: |
+          echo "Repo: $GITHUB_REPOSITORY"
+          echo "Este workflow debe tener secrets en: https://github.com/$GITHUB_REPOSITORY/settings/secrets/actions"
           if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_KEY" ]; then
-            echo "::error::SUPABASE_URL o SUPABASE_KEY vacíos. Añádelos en Settings → Secrets → Actions del repo."
+            echo "::error::SUPABASE_URL o SUPABASE_KEY vacíos."
+            echo "::error::1) Abre Settings → Secrets and variables → Actions en ESTE repo (no en tu fork)."
+            echo "::error::2) Crea Repository secrets: SUPABASE_URL y SUPABASE_KEY (mismos valores que Streamlit Cloud)."
+            echo "::error::3) Si usas Organization secrets: en la org → Secrets → edita el secret → Repository access → añade mini_crm."
             exit 1
           fi
-          echo "Secrets presentes (valores no mostrados)."
+          echo "Secrets OK (no se muestran valores)."
 
       - name: Ejecutar respaldo
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: python scripts/export_backup.py
 
       - name: Subir backup como artifact
